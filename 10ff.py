@@ -34,17 +34,16 @@ def make_word_lines(words: list, lines: int = 5):
     # -2 for user area, -2 for overlaps
     type_width = WIDTH-4
 
-    for i in range(lines):
+    for _ in range(lines):
         line = ''
         while len(line) < type_width:
             r_word = random.choice(words)
 
             if (len(line) + len(r_word)) > type_width:
                 break
-            else:
-                if len(line) != 0:
-                    line += ' '
-                line += r_word
+            if len(line) != 0:
+                line += ' '
+            line += r_word
         words_to_type.append(line)
 
     return words_to_type
@@ -128,7 +127,8 @@ if __name__ == '__main__':
                     curr_char = 0
 
                     while curr_line != '':
-                        type_screen(disp_line, curr_line, user_line, user_word)
+                        type_screen(
+                            disp_line, curr_line, user_line, user_word)
                         val = TERM.inkey()
                         chars += 1
 
@@ -143,7 +143,8 @@ if __name__ == '__main__':
                                 user_word = user_word[:len(user_word)-1]
 
                         elif val == ' ':
-                            curr_word, next_word_p = get_word_info(curr_line)
+                            curr_word, next_word_p = get_word_info(
+                                curr_line)
                             curr_line = curr_line[next_word_p:]
 
                             if user_word == curr_word:
@@ -165,10 +166,11 @@ if __name__ == '__main__':
                         else:
                             user_word += val
 
-                            if val == curr_line[curr_char]:
-                                curr_char += 1
-                            else:
-                                char_errors += 1
+                        if (curr_char < len(curr_line) and
+                                val == curr_line[curr_char]):
+                            curr_char += 1
+                        else:
+                            char_errors += 1
 
                     # clear previous word line
                     curr_line_index += 1
