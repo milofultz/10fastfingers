@@ -6,7 +6,13 @@ I want to recreate the [10 Fast Fingers](http://10fastfingers.com/) tutor in Pyt
 As you complete a word, if the word is correct, the word turns green. If it is incorrect, the word turns red. At the end of all of the lines, it tells you what your WPM and accuracy is.
 
 ---
-# Future Improvements:
+## Future Improvements:
 
-* Turn the whole word you're trying to type red as you make an error, and rectify that as it is corrected.
+* Turn the background of the whole word you're trying to type red as you make an error, and rectify that as it is corrected. Leave it red if you go to the next word and it has not been corrected.
 * tkinter GUI?
+
+---
+## References:
+
+* <http://www.10fastfingers.com>
+* <https://github.com/Mithil467/mitype>
