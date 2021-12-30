@@ -8,58 +8,50 @@ TERM = Terminal()
 HEIGHT = Terminal().height
 WIDTH = Terminal().width
 WORDLIST_FP = 'words.txt'
-BACKSPACE = [263, 330]  # codes for blessed to recognize user deletion
+
+# Codes for blessed to recognize user input
+BACKSPACE = [263, 330]
+ENTER = 343
 
 
 def load_words(word_file: str = WORDLIST_FP):
-    """Returns a list of words from file.
-
-    Keywords:
-    word_file -- filepath to word file (default: WORDLIST_FP)"""
-    words = []
+    """ Return a list of random words from word list. """
 
     with open(word_file, 'r') as f:
-        for word in f:
-            words.append(word.rstrip())
-
-    return words
+        return [word.rstrip() for word in f]
 
 
 def make_word_lines(words: list, lines: int = 5):
-    """Returns a list of 5 strings of random words under width length.
+    """ Return a list of random words under width length. """
 
-    words: list of words
-    lines: number of lines to create"""
     words_to_type = []
-    # -2 for user area, -2 for overlaps
-    type_width = WIDTH-4
+    type_width = WIDTH - 4  # -2 for user area, -2 for overlaps
+    last_word = ''
 
     for _ in range(lines):
         line = ''
         while len(line) < type_width:
             r_word = random.choice(words)
-
+            if r_word == last_word:
+                continue
             if (len(line) + len(r_word)) > type_width:
                 break
-            if len(line) != 0:
-                line += ' '
-            line += r_word
-        words_to_type.append(line)
+            line += r_word + ' '
+            last_word = r_word
+        words_to_type.append(line.rstrip())
 
     return words_to_type
 
 
 def get_time():
-    """Returns current time in seconds."""
-    current_time = int(time.time())
-    return current_time
+    """ Return current time in seconds. """
+
+    return int(time.time())
 
 
 def get_word_info(words: str, w_start: int = 0):
-    """Returns current word and start index of next word.
+    """ Return current word and start index of next word. """
 
-    words: line of words still to be typed
-    w_start: index of start of current word (default=0)"""
     w_end = w_start
     while w_end < len(words) and words[w_end] != ' ':
         w_end += 1
@@ -67,42 +59,30 @@ def get_word_info(words: str, w_start: int = 0):
     return words[w_start:w_end], w_end + 1
 
 
-def type_screen(disp: str, line: str, user_l: str, user_w: str):
-    """Displays current typing session.
+def type_screen(completed_words: str, remaining_words: str, next_word_line: str, user_input: str):
+    """ Display current typing session. """
 
-    disp: subset of current line containing colored already typed words
-    line: subset of current line containing words yet to be typed
-    user_l: string of all already typed words, as typed by user
-    user_w: string of attempt at current word, as typed by user"""
-    print(TERM.clear)
-    read_row = TERM.move_y(HEIGHT//2 - 1)
-    type_row = TERM.move_y(HEIGHT//2 + 1)
-    print(read_row + '  ' + disp + line)
-    print(type_row
-          + TERM.bright_white('>')
-          + user_l
-          + ' '
-          + user_w
-          + TERM.bright_white('_'))
-
-
-def game_over(c: int, c_err: int, w_err: int, s_time: int, e_time: int):
-    """Displays end screen with WPM and accuracy.
-
-    c: total keystrokes typed
-    c_err: total keystroke errors typed
-    w_err: total words completed incorrectly
-    s_time: time test was started in seconds
-    e_time: time test was ended in seconds"""
     print(TERM.clear)
 
-    minutes = (e_time - s_time) / 60
-    wpm = int(((c / 5) - w_err) // minutes)
-    accuracy = round(100 * (c - c_err) / c, 2)
+    current_words_row = TERM.move_y(HEIGHT // 2 - 1)  # Above the center
+    next_words_row = TERM.move_y(HEIGHT // 2)         # Center of the screen
+    user_input_row = TERM.move_y(HEIGHT // 2 + 2)     # Below the center
 
-    print(TERM.move_y(HEIGHT//2 - 1)
-          + f'Your WPM was {wpm}.\nYour accuracy was {accuracy}%.'
-          + TERM.move_y(HEIGHT//2 + 1))
+    print(current_words_row + '  ' + completed_words + remaining_words)
+    print(next_words_row + TERM.gray('  ' + next_word_line))
+    print(user_input_row + TERM.bright_white('>') + ' ' + user_input + TERM.bright_white('_'))
+
+
+def game_over(counts: dict, times: dict):
+    """ Display end screen with WPM and accuracy. """
+
+    print(TERM.clear)
+
+    minutes = (times['end'] - times['start']) / 60
+    wpm = max(int((counts['chars'] / 5 - counts['word_errors']) // minutes), 0)
+    accuracy = round(100 * (counts['chars'] - counts['errors']) / counts['chars'], 2)
+
+    print(TERM.move_y(HEIGHT // 2 - 1)+ f'Your WPM was {wpm}.\nYour accuracy was {accuracy}%.')
 
 
 if __name__ == '__main__':
@@ -112,73 +92,79 @@ if __name__ == '__main__':
         word_lines = make_word_lines(all_words)
         curr_line_index = 0
         chars = 0
-        char_errors = 0
+        errors = 0
         word_errors = 0
-        start = False
+        game_started = False
 
         with TERM.hidden_cursor():
             with TERM.cbreak():
                 while curr_line_index != len(word_lines):
-                    curr_line = word_lines[curr_line_index]
-                    disp_line = ''
-                    user_line = ''
-                    word_p = 0
-                    user_word = ''
-                    curr_char = 0
+                    remaining_words = word_lines[curr_line_index]
+                    if curr_line_index != len(word_lines) - 1:
+                        next_line = word_lines[curr_line_index + 1]
+                    else:
+                        next_line = ''
+                    completed_words = ''
+                    user_input = ''
+                    curr_char_index = 0
 
-                    while curr_line != '':
-                        type_screen(
-                            disp_line, curr_line, user_line, user_word)
+                    while remaining_words != '':
+                        type_screen(completed_words, remaining_words, next_line, user_input)
                         val = TERM.inkey()
                         chars += 1
 
-                        # get start time as first key is pressed
-                        if not start:
+                        # Get start time as first key is pressed
+                        if not game_started:
                             start_time = get_time()
-                            start = True
-                        # check if input correct
+                            game_started = True
+
                         if val.code in BACKSPACE:
-                            # delete last letter in user field
-                            if len(user_word) > 0:
-                                user_word = user_word[:len(user_word)-1]
+                            # Delete last letter in user field
+                            user_input = user_input[:-1]
+                        elif val == ' ' or val.code == ENTER:
+                            # Don't let a double space cause a failed word
+                            if user_input == '':
+                                continue
 
-                        elif val == ' ':
-                            curr_word, next_word_p = get_word_info(
-                                curr_line)
-                            curr_line = curr_line[next_word_p:]
+                            curr_word, next_word_index = get_word_info(remaining_words)
+                            remaining_words = remaining_words[next_word_index:]
 
-                            if user_word == curr_word:
-                                color = TERM.green
+                            if user_input == curr_word:
+                                completed_words += TERM.green
                             else:
-                                color = TERM.red
+                                completed_words += TERM.red
                                 word_errors += 1
 
-                            disp_line = (disp_line
-                                         + color
-                                         + curr_word
-                                         + ' '
-                                         + TERM.normal)
-                            user_line += ' ' + user_word
-                            word_p = 0
-                            user_word = ''
-                            curr_char = 0
-
+                            completed_words += curr_word + ' ' + TERM.normal
+                            user_input = ''
+                            curr_char_index = 0
                         else:
-                            user_word += val
+                            user_input += val
 
-                        if (curr_char < len(curr_line) and
-                                val == curr_line[curr_char]):
-                            curr_char += 1
+                        if curr_char_index < len(remaining_words) and val == remaining_words[curr_char_index]:
+                            curr_char_index += 1
                         else:
-                            char_errors += 1
+                            errors += 1
 
-                    # clear previous word line
                     curr_line_index += 1
 
-            # when all lines have been typed
-            end_time = get_time()
+        # When all lines have been typed, start game over sequence
+        end_time = get_time()
 
-        game_over(chars, char_errors, word_errors, start_time, end_time)
-        if 'y' not in input('Play again? ').lower():
+        counts = {
+            'chars': chars,
+            'errors': errors,
+            'word_errors': word_errors,
+        }
+        times = {
+            'start': start_time,
+            'end': end_time,
+        }
+
+        game_over(counts, times)
+
+        play_again = TERM.move_y(HEIGHT // 2 + 1) + 'Play again? '
+
+        if 'y' not in input(play_again).lower():
             print(TERM.clear)
             break
