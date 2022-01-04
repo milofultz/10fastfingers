@@ -1,3 +1,4 @@
+import os
 import random
 import time
 
@@ -7,7 +8,8 @@ from blessed import Terminal
 TERM = Terminal()
 HEIGHT = Terminal().height
 WIDTH = Terminal().width
-WORDLIST_FP = 'words.txt'
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+WORDLIST_FP = os.path.join(PROJECT_DIR, 'words.txt')
 
 # Codes for blessed to recognize user input
 BACKSPACE = [263, 330]
