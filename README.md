@@ -1,4 +1,4 @@
-# Ported to codeberg: https://github.com/milofultz/10fastfingers
+# Ported to codeberg: https://codeberg.org/milofultz/10fastfingers
 
 # 10 Fast Fingers Typing Tutor
 
