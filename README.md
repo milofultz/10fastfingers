@@ -1,3 +1,5 @@
+# Ported to codeberg: https://github.com/milofultz/10fastfingers
+
 # 10 Fast Fingers Typing Tutor
 
 I want to recreate the [10 Fast Fingers](http://10fastfingers.com/) tutor in Python. I want a line of text to appear on the terminal that I will need to type. 10 Fast Fingers teaches typing through using a subset of only the 300 most common English words.
